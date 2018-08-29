@@ -4,7 +4,6 @@ import pathToRegexp from 'path-to-regexp';
 import Loadable from 'react-loadable';
 import MyComponent from './component';
 
-
 let routerDataCache;
 
 const getRouterDataCache = app => {
@@ -78,61 +77,65 @@ function findMenuKey(menuData, path) {
 }
 
 /** 添加路由 */
-const addRoute = (app,dataMap,data) => {
+const addRoute = (app, dataMap, data) => {
   let res = dataMap;
-  if(data.code.indexOf('CMS_') > -1 && (data.type === 1 || (data.type === 2 && data.url))){
+  if (data.code.indexOf('CMS_') > -1 && (data.type === 1 || (data.type === 2 && data.url))) {
+    const models = MyComponent[data.code] ? MyComponent[data.code].models : [];
+    const componentPath = MyComponent[data.code]
+      ? MyComponent[data.code].componentUrl
+      : '/Exception/404';
     res = {
       ...res,
       [data.url]: {
-        component: dynamicWrapper(app, MyComponent[data.code]?MyComponent[data.code].models:[], () => import(`../routes${MyComponent[data.code].componentUrl}`)),
+        component: dynamicWrapper(app, models, () => import(`../routes${componentPath}`)),
       },
-    }
+    };
   }
   return res;
-}
+};
 /** 获取路径 */
-const getPath = (data) => {
+const getPath = data => {
   let path = '';
-  if(data.code.indexOf('CMS_') > -1 && (data.type === 1 || (data.type === 2 && data.url))){
+  if (data.code.indexOf('CMS_') > -1 && (data.type === 1 || (data.type === 2 && data.url))) {
     path = data.url;
-  }else{
+  } else {
     path = data.system_url + data.url;
   }
   return path;
-}
+};
 /** 记录菜单 */
-const recordMenu = (menu,data) => {
+const recordMenu = (menu, data) => {
   const res = menu;
-  if(data.type === 1){
-    res.push(data)
+  if (data.type === 1) {
+    res.push(data);
   }
   return res;
-}
+};
 /** 记录权限 */
-const recordPermissions = (permissions,data) => {
+const recordPermissions = (permissions, data) => {
   let res = permissions;
-  if(data.code.indexOf('CMS_') > -1 && data.type === 2){
+  if (data.code.indexOf('CMS_') > -1 && data.type === 2) {
     res = {
       ...res,
       [data.code]: true,
-    }
+    };
   }
   return res;
-}
+};
 
-export const getRouterData = (app,data) => {
+export const getRouterData = (app, data) => {
   let user = {};
   let menu = [];
   let dataMap = {};
   let permissions = {};
-  if(data && data.userInfo){
+  if (data && data.userInfo) {
     user = data.userInfo;
   }
-  if(data && data.userRole){
+  if (data && data.userRole) {
     data.userRole.forEach(item => {
-      if(item.children && item.children.length > 0){
+      if (item.children && item.children.length > 0) {
         let children = [];
-        menu = recordMenu(menu,{
+        menu = recordMenu(menu, {
           name: item.name,
           code: item.code,
           type: item.type,
@@ -140,12 +143,12 @@ export const getRouterData = (app,data) => {
           path: getPath(item),
           children,
         });
-        dataMap = addRoute(app,dataMap,item);
-        permissions = recordPermissions(permissions,item);
+        dataMap = addRoute(app, dataMap, item);
+        permissions = recordPermissions(permissions, item);
         item.children.forEach(iitem => {
-          if(iitem.children && iitem.children.length > 0){
+          if (iitem.children && iitem.children.length > 0) {
             let cchildren = [];
-            children = recordMenu(children,{
+            children = recordMenu(children, {
               name: iitem.name,
               code: iitem.code,
               type: iitem.type,
@@ -153,43 +156,43 @@ export const getRouterData = (app,data) => {
               path: getPath(iitem),
               children: cchildren,
             });
-            dataMap = addRoute(app,dataMap,iitem);
-            permissions = recordPermissions(permissions,iitem);
+            dataMap = addRoute(app, dataMap, iitem);
+            permissions = recordPermissions(permissions, iitem);
             iitem.children.forEach(iiitem => {
-              cchildren = recordMenu(cchildren,{
+              cchildren = recordMenu(cchildren, {
                 name: iiitem.name,
                 code: iiitem.code,
                 type: iiitem.type,
                 icon: '',
                 path: getPath(iiitem),
               });
-              dataMap = addRoute(app,dataMap,iiitem);
-              permissions = recordPermissions(permissions,iiitem);
-            })
-          }else{
-            children = recordMenu(children,{
+              dataMap = addRoute(app, dataMap, iiitem);
+              permissions = recordPermissions(permissions, iiitem);
+            });
+          } else {
+            children = recordMenu(children, {
               name: iitem.name,
               code: iitem.code,
               type: iitem.type,
               icon: '',
               path: getPath(iitem),
             });
-            dataMap = addRoute(app,dataMap,iitem);
-            permissions = recordPermissions(permissions,iitem);
+            dataMap = addRoute(app, dataMap, iitem);
+            permissions = recordPermissions(permissions, iitem);
           }
-        })
-      }else{
-        menu = recordMenu(menu,{
+        });
+      } else {
+        menu = recordMenu(menu, {
           name: item.name,
           code: item.code,
           type: item.type,
           icon: 'user',
           path: getPath(item),
         });
-        dataMap = addRoute(app,dataMap,item);
-        permissions = recordPermissions(permissions,item);
+        dataMap = addRoute(app, dataMap, item);
+        permissions = recordPermissions(permissions, item);
       }
-    })
+    });
   }
   const routerConfig = {
     '/': {
